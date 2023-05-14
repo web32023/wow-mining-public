@@ -81,7 +81,7 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
      * @dev Switching token addresses.
      */
     function setToken(address _token) external onlyAdmin {
-        require(block.number < startBlock, "MINING HAS STATED");
+        require(block.number < startBlock, "MINING HAS STARTED");
         token = _token;
     }
 
@@ -113,22 +113,22 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
     function withdraw() external onlyOperator {
         require(token != address(0), "TOKEN NEEDS TO BE INITIALIZED");
         require(startBlock <= block.number, "NOT STARTED YET");
-        RoundInfo storage currentRound = roundInfos[currentRound.sub(1)];
-        require(currentRound.round > 0, "OPEN ROUND FIRST");
-        require(currentRound.debt < currentRound.amount, "PLEASE OPEN NEXT ROUND");
-        uint256 remainingQuantity = currentRound.amount.sub(currentRound.debt);
+        require(currentRound > 0, "OPEN ROUND FIRST");
+        RoundInfo storage currentRoundInfo = roundInfos[currentRound.sub(1)];
+        require(currentRoundInfo.debt < currentRoundInfo.amount, "PLEASE OPEN NEXT ROUND");
+        uint256 remainingQuantity = currentRoundInfo.amount.sub(currentRoundInfo.debt);
         uint256 amount;
         if (remainingQuantity < perOperateAmount) {
             amount = remainingQuantity;
-            currentRound.debt = currentRound.amount;
+            currentRoundInfo.debt = currentRoundInfo.amount;
         } else {
             amount = perOperateAmount;
-            currentRound.debt = currentRound.debt.add(perOperateAmount);
+            currentRoundInfo.debt = currentRoundInfo.debt.add(perOperateAmount);
         }
         uint balance = IERC20(token).balanceOf(address(this));
         require(balance >= amount, "INSUFFICIENT QUANTITY");
         IERC20(token).transfer(receiver, amount);
-        emit Withdraw(receiver, token, amount, currentRound.round);
+        emit Withdraw(receiver, token, amount, currentRound);
     }
 
     /**

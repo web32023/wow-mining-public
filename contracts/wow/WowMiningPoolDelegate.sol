@@ -119,11 +119,9 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
         require(currentRoundInfo.debt < currentRoundInfo.amount, "PLEASE OPEN NEXT ROUND");
         uint256 remainingQuantity = currentRoundInfo.amount.sub(currentRoundInfo.debt);
         uint256 amount;
-        bool openNext = false;
         if (remainingQuantity < perOperateAmount) {
             amount = remainingQuantity;
             currentRoundInfo.debt = currentRoundInfo.amount;
-            openNext=true;
         } else {
             amount = perOperateAmount;
             currentRoundInfo.debt = currentRoundInfo.debt.add(perOperateAmount);
@@ -132,7 +130,7 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
         require(balance >= amount, "INSUFFICIENT QUANTITY");
         IERC20(token).transfer(receiver, amount);
         emit Withdraw(receiver, token, amount, currentRound);
-        if(openNext){
+        if(currentRoundInfo.debt==currentRoundInfo.amount){
             openNextRound();
         }
     }

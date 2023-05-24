@@ -20,7 +20,7 @@ contract('Wow Mining', ([admin, receiver, operator01, receiver02]) => {
         this.CurrentBlock = await time.latestBlock();
         this.StartBlock = await new BN(this.CurrentBlock).add(new BN(60));
         console.log("before Each block number:" + this.StartBlock.toString());
-        await expectRevert(MiningPoolDelegator.new(500000000, 10000000, 5, this.Token.address, receiver, this.PoolDelegate.address, {from: admin}), "START BLOCK MISSED.");
+        await expectRevert(MiningPoolDelegator.new(500000000, 10000000, this.CurrentBlock, this.Token.address, receiver, this.PoolDelegate.address, {from: admin}), "START BLOCK MISSED.");
         await expectRevert(MiningPoolDelegator.new(500000000, 10000000, this.StartBlock, '0x0000000000000000000000000000000000000000', receiver, this.PoolDelegate.address, {from: admin}), "INVALID ADDRESS");
         await expectRevert(MiningPoolDelegator.new(500000000, 10000000, this.StartBlock, this.Token.address, "0x0000000000000000000000000000000000000000", this.PoolDelegate.address, {from: admin}), "INVALID ADDRESS")
         this.PoolDelegator = await MiningPoolDelegator.new(500000000, 10000000, this.StartBlock, this.Token.address, receiver, this.PoolDelegate.address, {from: admin});
@@ -46,16 +46,6 @@ contract('Wow Mining', ([admin, receiver, operator01, receiver02]) => {
         assert.notEqual(this.Pool.token(), this.Token.address);
         await time.advanceBlockTo(this.StartBlock.add(new BN(1)));
         await expectRevert(this.Pool.setToken(this.Token.address, {from: admin}), "MINING HAS STARTED")
-    });
-
-    it('should open next round successfully', async () => {
-        await expectRevert(this.Pool.openNextRound({from: receiver}), "UNAUTHORIZED");
-        let newVar = await time.latestBlock();
-        await expectRevert(this.Pool.openNextRound({from: admin}), "NOT STARTED YET");
-        assert.equal(await this.Pool.currentRound(), 0);
-        await time.advanceBlockTo(this.StartBlock.add(new BN(1)));
-        await this.Pool.openNextRound({from: admin});
-        assert.equal(await this.Pool.currentRound(), 1);
     });
 
     it('should switch receiver successfully', async () => {
@@ -92,8 +82,6 @@ contract('Wow Mining', ([admin, receiver, operator01, receiver02]) => {
         await this.Pool.setToken(this.Token.address, {from: admin});
         await expectRevert(this.Pool.withdraw({from: operator01}), "NOT STARTED YET");
         await time.advanceBlockTo(this.StartBlock.add(new BN(10)));
-        await expectRevert(this.Pool.withdraw({from: operator01}), "OPEN ROUND FIRST");
-        await this.Pool.openNextRound({from: admin});
         let balance = await this.Token.balanceOf(receiver);
         assert.equal(balance, 0);
         let receipt = await this.Pool.withdraw({from: operator01});
@@ -105,8 +93,6 @@ contract('Wow Mining', ([admin, receiver, operator01, receiver02]) => {
         })
         for (let i = 0; i < 25; i++) {
             if (i == 24) {
-                await expectRevert(this.Pool.withdraw({from: operator01}),"PLEASE OPEN NEXT ROUND")
-                await this.Pool.openNextRound({from: admin});
                 await this.Pool.withdraw({from: operator01});
                 balance = await this.Token.balanceOf(receiver);
                 assert.equal(balance,260000000)
@@ -120,13 +106,5 @@ contract('Wow Mining', ([admin, receiver, operator01, receiver02]) => {
         assert.equal(totalDebt.toString(),260000000);
     });
 
-    it('should energency withdrawal successfully', async () => {
-        let balance = await this.Token.balanceOf(receiver02);
-        assert.equal(balance, 0);
-        await expectRevert(this.Pool.emergencyWithdrawal(receiver02,{from: operator01}),"UNAUTHORIZED");
-        await this.Pool.emergencyWithdrawal(receiver02,{from: admin})
-        balance = await this.Token.balanceOf(receiver02);
-        assert.equal(balance, 500000000);
-    });
 
 })

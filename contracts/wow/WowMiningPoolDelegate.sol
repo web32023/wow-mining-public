@@ -55,6 +55,7 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
         emit SetReceiver(_receiver);
         require(perOperateAmount == 0, INITIALIZED);
         perOperateAmount = _perOperateAmount;
+        openNextRound();
     }
 
     /**
@@ -118,9 +119,11 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
         require(currentRoundInfo.debt < currentRoundInfo.amount, "PLEASE OPEN NEXT ROUND");
         uint256 remainingQuantity = currentRoundInfo.amount.sub(currentRoundInfo.debt);
         uint256 amount;
+        bool openNext = false;
         if (remainingQuantity < perOperateAmount) {
             amount = remainingQuantity;
             currentRoundInfo.debt = currentRoundInfo.amount;
+            openNext=true;
         } else {
             amount = perOperateAmount;
             currentRoundInfo.debt = currentRoundInfo.debt.add(perOperateAmount);
@@ -129,13 +132,15 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
         require(balance >= amount, "INSUFFICIENT QUANTITY");
         IERC20(token).transfer(receiver, amount);
         emit Withdraw(receiver, token, amount, currentRound);
+        if(openNext){
+            openNextRound();
+        }
     }
 
     /**
      * @dev Manually start the next round of mining
      */
-    function openNextRound() external onlyAdmin {
-        require(startBlock <= block.number, "NOT STARTED YET");
+    function openNextRound() internal {
         if (currentRound != 0) {
             RoundInfo memory currentRound = roundInfos[currentRound.sub(1)];
             require(currentRound.debt == currentRound.amount, "CURRENT ROUND NOT END");
@@ -145,14 +150,6 @@ contract WowMiningPoolDelegate is WowMiningPoolStorage {
         uint currentRoundAmount = totalAmount.div(halveMultiple);
         roundInfos.push(RoundInfo(currentRound, currentRoundAmount, 0));
         emit OpenNextRound(currentRound, currentRoundAmount);
-    }
-
-    /**
-     * @dev Withdrawal of all tokens for emergency situations
-     */
-    function emergencyWithdrawal(address _receiver) external onlyAdmin {
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(_receiver, balance);
     }
 
     /**

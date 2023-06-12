@@ -1,18 +1,31 @@
-pragma solidity 0.6.12;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
 
 contract WowMiningPoolAdminStorage{
     address public admin;
     address public implementation;
+    /**
+     * @dev storage gaps
+     */
+    uint256[49] __gap;
 }
+
 
 contract WowMiningPoolStorage is WowMiningPoolAdminStorage{
 
     struct RoundInfo{
-//        This mining round number.
+
+        /**
+         * @dev This mining round number
+         */
         uint round;
-//        The total amount tokens will be mined in this round.
+        /**
+         * @dev The total amount tokens will be mined in this round.
+         */
         uint amount;
-//        The amount of this round has been mined.
+        /**
+         * @dev  The amount of this round has been mined.
+         */
         uint debt;
     }
 
